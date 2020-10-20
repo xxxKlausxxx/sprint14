@@ -11,14 +11,14 @@ const cardSchema = new mongoose.Schema({
   link: {
     type: String,
     required: true,
-  },
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
     validate: {
       validator: (value) => validator.isURL(value, { protocols: ['http', 'https', 'ftp'], require_tld: true, require_protocol: true }),
       message: 'Must be a Valid URL',
     },
+  },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
   },
   likes: [{
     type: mongoose.Schema.Types.ObjectId,

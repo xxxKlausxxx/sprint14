@@ -32,9 +32,23 @@ const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
     .orFail(() => {
       errStatus = 404;
-      throw new ValidationError('Нет пользователя с таким id');
+      throw new ValidationError('Нет карточки с таким id');
     })
-    .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(errStatus).send({ message: err.message }));
+    .then((card) => {
+      if (req.user._id === card.owner._id.toString()) {
+        const cardDeleted = card;
+        Card.deleteOne(card)
+          .orFail(() => {
+            errStatus = 500;
+            throw new ValidationError('Сбой сервера');
+          })
+          .then(() => res.send({ data: cardDeleted }))
+          .catch(() => res.status(errStatus).send({ message: 'Неопределенная ошибка' }));
+      } else {
+        errStatus = 403;
+        throw new Error('Нельзя удалить чужую карточку');
+      }
+    })
+    .catch(() => res.status(errStatus).send({ message: 'Ошибка' }));
 };
 module.exports = { readCards, createCard, deleteCard };

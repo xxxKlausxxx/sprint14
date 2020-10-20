@@ -1,5 +1,4 @@
 const bcrypt = require('bcryptjs');
-// eslint-disable-next-line import/no-extraneous-dependencies
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
@@ -36,18 +35,17 @@ const createUser = (req, res) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
+  if (password.length < 8) {
+    res.status(400).send({ message: 'Пароль не соответствует требованиям' });
+    return;
+  }
+
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
     .then((user) => res.status(201).send({ data: user }))
-    .catch((err) => {
-      if (err.name !== 'ValidationError') {
-        res.status(500).send({ message: 'Ошибка сервера' });
-      } else {
-        res.status(400).send({ message: 'Переданы некорректные данные' });
-      }
-    });
+    .catch(() => res.status(400).send({ message: 'Ошибка валидации' }));
 };
 
 const login = (req, res) => {
