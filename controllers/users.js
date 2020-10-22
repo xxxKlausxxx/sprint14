@@ -35,7 +35,12 @@ const createUser = (req, res) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
-  if (password.length < 8) {
+  if (
+    password.length < 8
+    || password.split('').every(
+      (elem, index, array) => elem === array[0],
+    )
+  ) {
     res.status(400).send({ message: 'Пароль не соответствует требованиям' });
     return;
   }
@@ -44,8 +49,25 @@ const createUser = (req, res) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.status(201).send({ data: user }))
-    .catch(() => res.status(400).send({ message: 'Ошибка валидации' }));
+    .then((user) => res.status(201).send({
+      name: user.name,
+      about: user.about,
+      avatar: user.avatar,
+      email: user.email,
+      password,
+    }))
+    .catch((err) => {
+      let errStatus;
+      let errMessage;
+      if (err.name === 'MongoError' && err.code === 11000) {
+        errStatus = 409;
+        errMessage = 'Повторный email';
+      } else {
+        errStatus = 400;
+        errMessage = 'Ошибка валидации полей пользователя';
+      }
+      res.status(errStatus).send({ message: errMessage });
+    });
 };
 
 const login = (req, res) => {

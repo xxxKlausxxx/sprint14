@@ -29,7 +29,7 @@ const createCard = (req, res) => {
 
 const deleteCard = (req, res) => {
   let errStatus = 400;
-  Card.findByIdAndRemove(req.params.id)
+  Card.findById(req.params.id)
     .orFail(() => {
       errStatus = 404;
       throw new ValidationError('Нет карточки с таким id');
@@ -40,15 +40,15 @@ const deleteCard = (req, res) => {
         Card.deleteOne(card)
           .orFail(() => {
             errStatus = 500;
-            throw new ValidationError('Сбой сервера');
+            throw new ValidationError('Сбой сервера - удаление неуспешно');
           })
           .then(() => res.send({ data: cardDeleted }))
-          .catch(() => res.status(errStatus).send({ message: 'Неопределенная ошибка' }));
+          .catch(() => res.status(errStatus).send({ message: 'Ошибка' }));
       } else {
         errStatus = 403;
         throw new Error('Нельзя удалить чужую карточку');
       }
     })
-    .catch(() => res.status(errStatus).send({ message: 'Ошибка' }));
+    .catch(() => res.status(errStatus).send({ message: 'Ошибка удаления' }));
 };
 module.exports = { readCards, createCard, deleteCard };
