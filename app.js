@@ -28,12 +28,12 @@ app.post('/signup', createUser);
 app.use(auth);
 
 app.use('/', cardsRouter);
-app.use('/users', usersRouter);
+app.use('/', usersRouter);
 app.use('/', (req, res) => {
-  res.set({ 'content-type': 'application/json; charset=utf-8' });
   res.status(404).end({ message: 'Запрашиваемый ресурс не найден' });
 });
 
 app.listen(PORT, () => {
-
+  // eslint-disable-next-line no-console
+  console.log(`App listening on port ${PORT}`);
 });

@@ -1,13 +1,5 @@
 const Card = require('../models/card');
 
-class ValidationError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'ValidationError';
-    this.statusCode = 400;
-  }
-}
-
 const readCards = (req, res) => {
   Card.find({})
     .then((card) => res.send({ data: card }))
@@ -28,27 +20,25 @@ const createCard = (req, res) => {
 };
 
 const deleteCard = (req, res) => {
-  let errStatus = 400;
-  Card.findById(req.params.id)
-    .orFail(() => {
-      errStatus = 404;
-      throw new ValidationError('Нет карточки с таким id');
-    })
+  const cardOwner = req.user._id;
+  Card.findById(req.params.cardId)
     .then((card) => {
-      if (req.user._id === card.owner._id.toString()) {
-        const cardDeleted = card;
-        Card.deleteOne(card)
-          .orFail(() => {
-            errStatus = 500;
-            throw new ValidationError('Сбой сервера - удаление неуспешно');
-          })
-          .then(() => res.send({ data: cardDeleted }))
-          .catch(() => res.status(errStatus).send({ message: 'Ошибка' }));
-      } else {
-        errStatus = 403;
-        throw new Error('Нельзя удалить чужую карточку');
+      const owner = card.owner.toString();
+
+      if (cardOwner !== owner) {
+        res.status(403).send({ message: 'Нельзя удалить чужую карточку' });
       }
+      res.send({ data: card });
     })
-    .catch(() => res.status(errStatus).send({ message: 'Ошибка удаления' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Некорректный ID' });
+      } else if (err.name === 'TypeError') {
+        res.status(404).send({ message: 'Нет карточки с таким ID' });
+      } else {
+        res.status(500).send({ message: 'Сбой сервера - удаление неуспешно' });
+      }
+    });
 };
+
 module.exports = { readCards, createCard, deleteCard };

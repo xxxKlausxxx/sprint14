@@ -4,14 +4,6 @@ const User = require('../models/user');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
-class ValidationError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'ValidationError';
-    this.statusCode = 400;
-  }
-}
-
 const readUsers = (req, res) => {
   User.find({})
     .then((user) => res.send({ data: user }))
@@ -19,15 +11,17 @@ const readUsers = (req, res) => {
 };
 
 const readUserById = (req, res) => {
-  let errStatus = 400;
-  User.findById(req.params.id)
-    .orFail(() => {
-      errStatus = 404;
-      throw new ValidationError('Нет пользователя с таким id');
-    })
+  User.findById(req.params.userId)
+    .orFail()
     .then((user) => res.send({ data: user }))
     .catch((err) => {
-      res.status(errStatus).send({ message: err.message });
+      if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: 'Пользователь не найден' });
+      } else if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Некорректный ID' });
+      } else {
+        res.status(500).send({ message: 'На сервере произошла ошибка' });
+      }
     });
 };
 
@@ -35,12 +29,7 @@ const createUser = (req, res) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
-  if (
-    password.length < 8
-    || password.split('').every(
-      (elem, index, array) => elem === array[0],
-    )
-  ) {
+  if (!password || password.length < 8) {
     res.status(400).send({ message: 'Пароль не соответствует требованиям' });
     return;
   }
@@ -54,7 +43,6 @@ const createUser = (req, res) => {
       about: user.about,
       avatar: user.avatar,
       email: user.email,
-      password,
     }))
     .catch((err) => {
       let errStatus;
