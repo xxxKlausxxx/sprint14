@@ -1,13 +1,5 @@
 const Card = require('../models/card');
 
-class ValidationError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'ValidationError';
-    this.statusCode = 400;
-  }
-}
-
 const readCards = (req, res) => {
   Card.find({})
     .then((card) => res.send({ data: card }))
@@ -24,33 +16,30 @@ const createCard = (req, res) => {
       } else {
         res.status(400).send({ message: 'Переданы некорректные данные' });
       }
-      res.status(errStatus).send({ message: errMessage });
     });
 };
 
 const deleteCard = (req, res) => {
-  let errStatus = 400;
-  Card.findById(req.params.id)
-    .orFail(() => {
-      errStatus = 404;
-      throw new ValidationError('Нет карточки с таким id');
-    })
+  const cardOwner = req.user._id;
+  Card.findByIdAndRemove(req.params.cardId)
     .then((card) => {
-      if (req.user._id === card.owner._id.toString()) {
-        const cardDeleted = card;
-        Card.deleteOne(card)
-          .orFail(() => {
-            errStatus = 500;
-            throw new ValidationError('Сбой сервера - удаление неуспешно');
-          })
-          .then(() => res.send({ data: cardDeleted }))
-          .catch(() => res.status(errStatus).send({ message: 'Неопределенная ошибка' }));
-      } else {
-        errStatus = 403;
-        throw new Error('Нельзя удалить чужую карточку');
+      const owner = card.owner.toString();
+
+      if (cardOwner !== owner) {
+        res.status(403).send({ message: 'Нет прав' });
       }
+      res.send({ data: card });
     })
-    .catch(() => res.status(errStatus).send({ message: errMessage }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Некорректный ID' });
+      } else if (err.name === 'TypeError') {
+        res.status(404).send({ message: 'Карточки с таким ID нет' });
+      } else {
+        res.status(500).send({ message: 'На сервере произошла ошибка' });
+      }
+      res.status(401).send({ message: err.message });
+    });
 };
 
 module.exports = { readCards, createCard, deleteCard };

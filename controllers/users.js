@@ -11,7 +11,7 @@ const readUsers = (req, res) => {
 };
 
 const readUserById = (req, res) => {
-  User.findById(req.params.userId)
+  User.findById(req.params.id)
     .orFail()
     .then((user) => res.send({ data: user }))
     .catch((err) => {
@@ -22,7 +22,6 @@ const readUserById = (req, res) => {
       } else {
         res.status(500).send({ message: 'На сервере произошла ошибка' });
       }
-      res.status(errStatus).send({ message: errMessage });
     });
 };
 
@@ -51,9 +50,12 @@ const createUser = (req, res) => {
       if (err.name === 'MongoError' && err.code === 11000) {
         errStatus = 409;
         errMessage = 'Повторный email';
-      } else {
+      } else if (err.name === 'ValidationError') {
         errStatus = 400;
         errMessage = 'Ошибка валидации полей пользователя';
+      } else {
+        errStatus = 500;
+        errMessage = 'На сервере произошла ошибка';
       }
       res.status(errStatus).send({ message: errMessage });
     });
