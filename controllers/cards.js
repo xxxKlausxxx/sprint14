@@ -24,6 +24,7 @@ const createCard = (req, res) => {
       } else {
         res.status(400).send({ message: 'Переданы некорректные данные' });
       }
+      res.status(errStatus).send({ message: errMessage });
     });
 };
 
@@ -49,7 +50,7 @@ const deleteCard = (req, res) => {
         throw new Error('Нельзя удалить чужую карточку');
       }
     })
-    .catch(() => res.status(errStatus).send({ message: 'Недопустимый формат номера карточки' }));
+    .catch(() => res.status(errStatus).send({ message: errMessage }));
 };
 
 module.exports = { readCards, createCard, deleteCard };

@@ -22,6 +22,7 @@ const readUserById = (req, res) => {
       } else {
         res.status(500).send({ message: 'На сервере произошла ошибка' });
       }
+      res.status(errStatus).send({ message: errMessage });
     });
 };
 
