@@ -21,24 +21,30 @@ const createCard = (req, res) => {
 
 const deleteCard = (req, res) => {
   const cardOwner = req.user._id;
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
+    .orFail()
     .then((card) => {
       const owner = card.owner.toString();
 
       if (cardOwner !== owner) {
-        res.status(403).send({ message: 'Нет прав' });
-      }
-      res.send({ data: card });
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Некорректный ID' });
-      } else if (err.name === 'TypeError') {
-        res.status(404).send({ message: 'Карточки с таким ID нет' });
+        res.status(403).send({ message: 'Нельзя удалить чужую карточку' });
       } else {
-        res.status(500).send({ message: 'На сервере произошла ошибка' });
+        Card.deleteOne(card)
+          .then(() => res.send({ data: card }))
+          .catch((err) => {
+            if (err.name === 'CastError') {
+              res.status(400).send({ message: 'Некорректный ID' });
+            } else {
+              res.status(500).send({ message: 'На сервере произошла ошибка' });
+            }
+          });
       }
-      res.status(401).send({ message: err.message });
+    })
+
+    .catch((err) => {
+      if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: 'Нет такой карточки' });
+      } else { res.status(500).send({ message: 'На сервере произошла ошибка' }); }
     });
 };
 
